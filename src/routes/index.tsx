@@ -1,0 +1,231 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AppLayout } from "@/components/AppLayout";
+import { useAuth } from "@/lib/auth-context";
+import { LoginPage } from "@/components/LoginPage";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Users, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { usePatients } from "@/hooks/use-patients";
+import { useRendezVous } from "@/hooks/use-rendez-vous";
+import { usePassageDirect } from "@/hooks/use-passage-direct";
+import { useCategories } from "@/hooks/use-categories";
+import { NewPatientModal } from "@/components/modals/NewPatientModal";
+import { NewRendezVousModal } from "@/components/modals/NewRendezVousModal";
+import { NewPassageDirectModal } from "@/components/modals/NewPassageDirectModal";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/")({
+  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Just Smile - Clinique Dentaire" },
+      { name: "description", content: "Système de gestion - Just Smile Clinique Dentaire" },
+    ],
+  }),
+});
+
+function Index() {
+  const { isAuthenticated, isInitialized } = useAuth();
+  
+  // Show nothing while initializing to prevent flash
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-amber-900"></div>
+          <p className="mt-4 text-slate-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) return <LoginPage />;
+
+  const { patients, addPatient } = usePatients();
+  const { rendezVous, addRendezVous, toggleStatut } = useRendezVous();
+  const { passagesDirects, addPassageDirect, updatePassageDirect } = usePassageDirect();
+  const { categories } = useCategories();
+  const [newPatientOpen, setNewPatientOpen] = useState(false);
+  const [newRdvOpen, setNewRdvOpen] = useState(false);
+  const [newPassageOpen, setNewPassageOpen] = useState(false);
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todayRDV = (rendezVous ?? []).filter((r) => r.date === todayStr);
+  const todayPassages = (passagesDirects || []).filter((p) => p.date === todayStr);
+  const pendingPassages = todayPassages.filter((p) => p.statut === "en attente");
+  const totalPatients = (patients ?? []).length;
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Tableau de Bord</h1>
+          <p className="text-sm text-muted-foreground">Bienvenue, Dr. Souidi</p>
+        </div>
+
+        {/* Passage Direct Section - Top Priority */}
+        <Card className="border border-border bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+          <CardHeader className="flex flex-row items-center justify-between bg-amber-100/50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800">
+            <CardTitle className="text-base font-semibold flex items-center gap-2 text-foreground">
+              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              Passages Directs du Jour
+            </CardTitle>
+            <Button 
+              size="sm" 
+              onClick={() => setNewPassageOpen(true)} 
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              + Nouveau Passage
+            </Button>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {pendingPassages.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">Aucun passage en attente</p>
+            ) : (
+              <div className="space-y-2">
+                {todayPassages.map((passage) => (
+                  <div
+                    key={passage.id}
+                    className="flex items-center justify-between rounded border border-amber-200 dark:border-amber-800 p-3 hover:bg-amber-100/30 dark:hover:bg-amber-900/20 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-sm text-foreground">{passage.nomPrenom}</p>
+                      <p className="text-xs text-muted-foreground">{passage.motif}</p>
+                    </div>
+                    <div className="flex items-center gap-3 ml-4">
+                      <span className="text-sm font-semibold text-foreground tabular-nums">{passage.heure}</span>
+                      {passage.statut === "passé" ? (
+                        <Badge className="bg-green-100 text-green-700 border-green-200 font-normal">Passé</Badge>
+                      ) : passage.statut === "annulé" ? (
+                        <Badge className="bg-red-100 text-red-700 border-red-200 font-normal">Annulé</Badge>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              updatePassageDirect(passage.id, { statut: "passé" });
+                              toast.success("Marqué comme passé");
+                            }}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Marquer comme passé"
+                          >
+                            <CheckCircle2 className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              updatePassageDirect(passage.id, { statut: "annulé" });
+                              toast.success("Marqué comme annulé");
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Marquer comme annulé"
+                          >
+                            <XCircle className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-l-4 border-l-primary border border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Rendez-vous aujourd'hui
+              </CardTitle>
+              <Calendar className="h-5 w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground tabular-nums">{todayRDV.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-primary border border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Total Patients
+              </CardTitle>
+              <Users className="h-5 w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground tabular-nums">{totalPatients}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-1">
+          <Card className="border border-border">
+            <CardHeader className="flex flex-row items-center justify-between bg-muted/30 border-b border-border">
+              <CardTitle className="text-base font-semibold flex items-center gap-2 text-foreground">
+                <Clock className="h-5 w-5 text-primary" />
+                Rendez-vous du jour
+              </CardTitle>
+              <Button size="sm" onClick={() => setNewRdvOpen(true)} className="bg-primary hover:bg-primary/90">
+                Ajouter
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {todayRDV.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">Aucun rendez-vous aujourd'hui</p>
+              ) : (
+                <div className="space-y-2">
+                  {todayRDV.map((rdv) => (
+                    <div
+                      key={rdv.id}
+                      className="flex items-center justify-between rounded border border-border p-3 hover:bg-muted/30 transition-colors"
+                    >
+                      <div>
+                        <p className="font-medium text-sm text-foreground">{rdv.patientNom}</p>
+                        <p className="text-xs text-muted-foreground">{rdv.motif}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{rdv.heure}</span>
+                        <Badge
+                          variant="outline"
+                          className={`cursor-pointer hover:bg-accent font-normal ${
+                            rdv.statut === "confirmé" 
+                              ? "border-success/30 bg-success/5 text-success" 
+                              : "border-warning/30 bg-warning/5 text-warning"
+                          }`}
+                          onClick={() => toggleStatut(rdv.id)}
+                        >
+                          {rdv.statut === "confirmé" ? "Confirmé" : "En attente"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <NewPatientModal
+        open={newPatientOpen}
+        onOpenChange={setNewPatientOpen}
+        categories={categories}
+        onSubmit={addPatient}
+      />
+
+      <NewRendezVousModal
+        open={newRdvOpen}
+        onOpenChange={setNewRdvOpen}
+        categories={categories}
+        onSubmit={addRendezVous}
+      />
+
+      <NewPassageDirectModal
+        open={newPassageOpen}
+        onOpenChange={setNewPassageOpen}
+        categories={categories}
+        onSubmit={addPassageDirect}
+      />
+    </AppLayout>
+  );
+}

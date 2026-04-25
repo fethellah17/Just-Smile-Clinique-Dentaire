@@ -19,9 +19,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <main className="flex-1 p-4 md:p-6 overflow-auto">
             {children}
           </main>
-          <footer className="border-t bg-card px-4 py-3 text-xs text-muted-foreground flex items-center gap-2">
-            <MapPin className="h-3 w-3" />
-            Souk El Tenine, Oulhaca El Gherraba, Ain Temouchent
+          <footer className="border-t bg-card px-4 py-3 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-3 w-3" />
+                <span>Souk El Tenine, Oulhaca El Gherraba, Ain Temouchent</span>
+              </div>
+              <div className="text-xs">
+                Just Smile © 2026 | Clinique Dentaire
+              </div>
+            </div>
           </footer>
         </div>
       </div>

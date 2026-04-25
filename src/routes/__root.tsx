@@ -34,12 +34,34 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Just Smile - Clinique Dentaire" },
-      { name: "description", content: "Système de gestion - Just Smile Clinique Dentaire" },
+      { name: "description", content: "Système de gestion professionnel pour la Clinique Dentaire Just Smile" },
+      { name: "theme-color", content: "#0EA5E9" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "Just Smile" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "icon",
+        type: "image/jpeg",
+        href: "/images/logo.jpg",
+      },
+      {
+        rel: "shortcut icon",
+        type: "image/jpeg",
+        href: "/images/logo.jpg",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/images/logo.jpg",
+      },
+      {
+        rel: "manifest",
+        href: "/manifest.json",
       },
       {
         rel: "preconnect",

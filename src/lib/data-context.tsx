@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Patient, RendezVous, Acte, Category, PaymentRecord, PassageDirect } from "@/lib/mock-data";
 import { patients as initialPatients, rendezVous as initialRendezVous, actes as initialActes, categories as initialCategories, passagesDirects as initialPassagesDirects } from "@/lib/mock-data";
 
@@ -23,6 +23,7 @@ interface DataContextType {
   updateRendezVous: (id: string, updates: Partial<RendezVous>) => void;
   deleteRendezVous: (id: string) => void;
   toggleRendezVousStatut: (id: string) => void;
+  archiveRendezVousByDate: (date: string) => void;
   
   // PassageDirect operations
   addPassageDirect: (passage: Omit<PassageDirect, "id">) => PassageDirect;
@@ -50,6 +51,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [actes, setActes] = useState<Acte[]>(initialActes ?? []);
   const [categories, setCategories] = useState<Category[]>(initialCategories ?? []);
   const [isLoaded] = useState(true);
+
+  // Auto-clear passages directs when all are processed
+  useEffect(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayPassages = (passagesDirects || []).filter((p) => p.date === todayStr);
+    const pendingPassages = todayPassages.filter((p) => p.statut === "en attente");
+    
+    // If there are passages today but none pending, clear all today's passages
+    if (todayPassages.length > 0 && pendingPassages.length === 0) {
+      setPassagesDirects((prev) => (prev || []).filter((p) => p.date !== todayStr));
+    }
+  }, [passagesDirects]);
 
   // Patient operations
   const addPatient = (patient: Omit<Patient, "id" | "dateCreation">) => {
@@ -120,6 +133,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
           ...r,
           statut: r.statut === "confirmé" ? "en attente" : "confirmé",
         };
+      }
+      return r;
+    }));
+  };
+
+  const archiveRendezVousByDate = (date: string) => {
+    setRendezVous((rendezVous ?? []).map(r => {
+      if (r.date === date && !r.archived) {
+        return { ...r, archived: true };
       }
       return r;
     }));
@@ -204,6 +226,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     updateRendezVous,
     deleteRendezVous,
     toggleRendezVousStatut,
+    archiveRendezVousByDate,
     addPassageDirect,
     updatePassageDirect,
     deletePassageDirect,

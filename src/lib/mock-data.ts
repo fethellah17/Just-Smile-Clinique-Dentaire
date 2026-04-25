@@ -85,12 +85,15 @@ export interface RendezVous {
   id: string;
   patientId: string;
   patientNom: string;
+  nom?: string;
+  prenom?: string;
   date: string;
   heure: string;
   motif: string;
   statut: "confirmé" | "en attente" | "annulé";
   telephone?: string;
   age?: number;
+  archived?: boolean;
 }
 
 export interface PassageDirect {

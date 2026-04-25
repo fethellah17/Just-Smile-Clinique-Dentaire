@@ -13,34 +13,14 @@ export function hasActivePendingAppointments(
 }
 
 /**
- * Separates appointments into active (with pending) and archived (all confirmed/rejected)
+ * Separates appointments into active (not archived) and archived (manually archived)
  */
 export function separateActiveAndArchived(appointments: RendezVous[]): {
   active: RendezVous[];
   archived: RendezVous[];
 } {
-  const active: RendezVous[] = [];
-  const archived: RendezVous[] = [];
-
-  // Group by date
-  const grouped = appointments.reduce<Record<string, RendezVous[]>>(
-    (acc, rdv) => {
-      if (!acc[rdv.date]) acc[rdv.date] = [];
-      acc[rdv.date].push(rdv);
-      return acc;
-    },
-    {}
-  );
-
-  // Separate based on whether date has pending appointments
-  Object.entries(grouped).forEach(([date, rdvs]) => {
-    const hasPending = rdvs.some((rdv) => rdv.statut === "en attente");
-    if (hasPending) {
-      active.push(...rdvs);
-    } else {
-      archived.push(...rdvs);
-    }
-  });
+  const active = appointments.filter((rdv) => !rdv.archived);
+  const archived = appointments.filter((rdv) => rdv.archived);
 
   return { active, archived };
 }
@@ -97,4 +77,32 @@ export function groupAndSortAppointments(
  */
 export function hasAnyActiveAppointments(appointments: RendezVous[]): boolean {
   return appointments.some((rdv) => rdv.statut === "en attente");
+}
+
+/**
+ * Checks if a specific date has any pending appointments
+ */
+export function hasAnyPendingAppointmentsForDate(
+  appointments: RendezVous[],
+  date: string
+): boolean {
+  return appointments
+    .filter((rdv) => rdv.date === date && !rdv.archived)
+    .some((rdv) => rdv.statut === "en attente");
+}
+
+/**
+ * Checks if a specific date has any appointments to archive
+ */
+export function canArchiveDate(
+  appointments: RendezVous[],
+  date: string
+): boolean {
+  const dateAppointments = appointments.filter(
+    (rdv) => rdv.date === date && !rdv.archived
+  );
+  return (
+    dateAppointments.length > 0 &&
+    !dateAppointments.some((rdv) => rdv.statut === "en attente")
+  );
 }

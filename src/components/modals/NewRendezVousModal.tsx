@@ -15,7 +15,8 @@ interface NewRendezVousModalProps {
 
 export function NewRendezVousModal({ open, onOpenChange, categories, onSubmit }: NewRendezVousModalProps) {
   const [formData, setFormData] = useState({
-    nomPrenom: "",
+    nom: "",
+    prenom: "",
     telephone: "",
     age: "",
     categorie: "",
@@ -26,7 +27,8 @@ export function NewRendezVousModal({ open, onOpenChange, categories, onSubmit }:
   useEffect(() => {
     if (!open) {
       setFormData({
-        nomPrenom: "",
+        nom: "",
+        prenom: "",
         telephone: "",
         age: "",
         categorie: "",
@@ -39,14 +41,16 @@ export function NewRendezVousModal({ open, onOpenChange, categories, onSubmit }:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.nomPrenom || !formData.date || !formData.heure || !formData.categorie) {
+    if (!formData.nom || !formData.prenom || !formData.date || !formData.heure || !formData.categorie) {
       alert("Veuillez remplir tous les champs obligatoires");
       return;
     }
 
     onSubmit({
       patientId: "",
-      patientNom: formData.nomPrenom,
+      patientNom: `${formData.nom} ${formData.prenom}`,
+      nom: formData.nom,
+      prenom: formData.prenom,
       date: formData.date,
       heure: formData.heure,
       motif: formData.categorie,
@@ -56,7 +60,8 @@ export function NewRendezVousModal({ open, onOpenChange, categories, onSubmit }:
     });
 
     setFormData({
-      nomPrenom: "",
+      nom: "",
+      prenom: "",
       telephone: "",
       age: "",
       categorie: "",
@@ -73,15 +78,27 @@ export function NewRendezVousModal({ open, onOpenChange, categories, onSubmit }:
           <DialogTitle className="text-lg sm:text-xl">Nouveau Rendez-vous</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="nomPrenom" className="text-sm">Nom et Prénom *</Label>
-            <Input
-              id="nomPrenom"
-              value={formData.nomPrenom}
-              onChange={(e) => setFormData({ ...formData, nomPrenom: e.target.value })}
-              placeholder="Hadj-bouziane Fethellah"
-              className="text-base"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="nom" className="text-sm">Nom *</Label>
+              <Input
+                id="nom"
+                value={formData.nom}
+                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                placeholder="Hadj-bouziane"
+                className="text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="prenom" className="text-sm">Prénom *</Label>
+              <Input
+                id="prenom"
+                value={formData.prenom}
+                onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
+                placeholder="Fethellah"
+                className="text-base"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

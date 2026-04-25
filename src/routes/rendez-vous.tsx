@@ -5,7 +5,7 @@ import { LoginPage } from "@/components/LoginPage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, Trash2, ChevronDown, ChevronUp, Phone } from "lucide-react";
+import { Plus, Calendar, Trash2, ChevronDown, ChevronUp, Phone, Archive } from "lucide-react";
 import { useState } from "react";
 import { useRendezVous } from "@/hooks/use-rendez-vous";
 import { usePatients } from "@/hooks/use-patients";
@@ -27,6 +27,7 @@ import {
   separateActiveAndArchived,
   groupAndSortAppointments,
   hasAnyActiveAppointments,
+  canArchiveDate,
 } from "@/lib/appointment-utils";
 
 export const Route = createFileRoute("/rendez-vous")({
@@ -52,7 +53,7 @@ function RendezVousPage() {
 
   if (!isAuthenticated) return <LoginPage />;
 
-  const { rendezVous, addRendezVous, updateRendezVous, deleteRendezVous } = useRendezVous();
+  const { rendezVous, addRendezVous, updateRendezVous, deleteRendezVous, archiveByDate } = useRendezVous();
   const { addPatient } = usePatients();
   const { categories } = useCategories();
   const [newRdvOpen, setNewRdvOpen] = useState(false);
@@ -70,22 +71,23 @@ function RendezVousPage() {
   };
 
   const handleConfirmAppointment = (appointment: RendezVous) => {
-    // Mark as confirmed
+    // Only mark as confirmed and close modal
     updateRendezVous(appointment.id, { statut: "confirmé" });
-
-    // Store appointment data for patient conversion
-    setAppointmentToConvert(appointment);
     
     // Close action modal
     setAppointmentActionOpen(false);
     
-    // Open patient modal for conversion
-    setNewPatientOpen(true);
+    showToast("Rendez-vous confirmé");
   };
 
   const handleRejectAppointment = (appointmentId: string) => {
     updateRendezVous(appointmentId, { statut: "annulé" });
     showToast("Rendez-vous rejeté");
+  };
+
+  const handleArchiveDate = (date: string) => {
+    archiveByDate(date);
+    showToast("Journée archivée");
   };
 
   const handleNewPatientSubmit = (patientData: any) => {
@@ -109,6 +111,8 @@ function RendezVousPage() {
     addRendezVous({
       patientId: "",
       patientNom: rdvData.patientNom,
+      nom: rdvData.nom,
+      prenom: rdvData.prenom,
       date: rdvData.date,
       heure: rdvData.heure,
       motif: rdvData.motif,
@@ -193,15 +197,29 @@ function RendezVousPage() {
             activeSortedDates?.map((date) => (
               <Card key={date} className="border border-border">
                 <CardHeader className="pb-3 bg-muted/30 border-b border-border">
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    {new Date(date).toLocaleDateString("fr-FR", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      {new Date(date).toLocaleDateString("fr-FR", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </CardTitle>
+                    {canArchiveDate(rendezVous, date) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleArchiveDate(date)}
+                        className="h-8 gap-2 text-xs"
+                        title="Archiver cette journée"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                        Archiver
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="pt-4">
                   <div className="space-y-2">
@@ -269,16 +287,23 @@ function RendezVousPage() {
                               >
                                 En attente
                               </button>
+                            ) : rdv.statut === "confirmé" ? (
+                              <button
+                                onClick={() => {
+                                  setAppointmentToConvert(rdv);
+                                  setNewPatientOpen(true);
+                                }}
+                                className="px-2 sm:px-3 py-1 rounded border border-success/30 bg-success/5 text-success hover:bg-success/10 transition-colors cursor-pointer text-xs sm:text-sm font-normal"
+                                title="Cliquez pour créer le dossier patient"
+                              >
+                                Confirmé
+                              </button>
                             ) : (
                               <Badge
                                 variant="outline"
-                                className={`font-normal text-xs sm:text-sm ${
-                                  rdv.statut === "confirmé" 
-                                    ? "border-success/30 bg-success/5 text-success" 
-                                    : "border-destructive/30 bg-destructive/5 text-destructive"
-                                }`}
+                                className="border-destructive/30 bg-destructive/5 text-destructive font-normal text-xs sm:text-sm"
                               >
-                                {rdv.statut === "confirmé" ? "Confirmé" : "Annulé"}
+                                Annulé
                               </Badge>
                             )}
                             
@@ -420,8 +445,8 @@ function RendezVousPage() {
         categories={categories}
         onSubmit={handleNewPatientSubmit}
         prefilledData={appointmentToConvert ? {
-          nom: appointmentToConvert.patientNom.split(' ')[0] || "",
-          prenom: appointmentToConvert.patientNom.split(' ').slice(1).join(' ') || "",
+          nom: appointmentToConvert.nom || appointmentToConvert.patientNom.split(' ')[0] || "",
+          prenom: appointmentToConvert.prenom || appointmentToConvert.patientNom.split(' ').slice(1).join(' ') || "",
           telephone: appointmentToConvert.telephone,
           age: appointmentToConvert.age,
           categorie: appointmentToConvert.motif || "",

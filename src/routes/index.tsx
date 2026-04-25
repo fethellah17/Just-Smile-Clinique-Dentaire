@@ -52,10 +52,9 @@ function Index() {
   const [newPassageOpen, setNewPassageOpen] = useState(false);
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const todayRDV = (rendezVous ?? []).filter((r) => r.date === todayStr);
+  const todayRDV = (rendezVous || []).filter((r) => r.date === todayStr);
   const todayPassages = (passagesDirects || []).filter((p) => p.date === todayStr);
-  const pendingPassages = todayPassages.filter((p) => p.statut === "en attente");
-  const totalPatients = (patients ?? []).length;
+  const totalPatients = (patients || []).length;
 
   return (
     <AppLayout>
@@ -65,78 +64,12 @@ function Index() {
           <p className="text-sm text-muted-foreground">Bienvenue, Dr. Souidi</p>
         </div>
 
-        {/* Passage Direct Section - Top Priority */}
-        <Card className="border border-border bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
-          <CardHeader className="flex flex-row items-center justify-between bg-amber-100/50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800">
-            <CardTitle className="text-base font-semibold flex items-center gap-2 text-foreground">
-              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              Passages Directs du Jour
-            </CardTitle>
-            <Button 
-              size="sm" 
-              onClick={() => setNewPassageOpen(true)} 
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-            >
-              + Nouveau Passage
-            </Button>
-          </CardHeader>
-          <CardContent className="pt-4">
-            {pendingPassages.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">Aucun passage en attente</p>
-            ) : (
-              <div className="space-y-2">
-                {todayPassages.map((passage) => (
-                  <div
-                    key={passage.id}
-                    className="flex items-center justify-between rounded border border-amber-200 dark:border-amber-800 p-3 hover:bg-amber-100/30 dark:hover:bg-amber-900/20 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-sm text-foreground">{passage.nomPrenom}</p>
-                      <p className="text-xs text-muted-foreground">{passage.motif}</p>
-                    </div>
-                    <div className="flex items-center gap-3 ml-4">
-                      <span className="text-sm font-semibold text-foreground tabular-nums">{passage.heure}</span>
-                      {passage.statut === "passé" ? (
-                        <Badge className="bg-green-100 text-green-700 border-green-200 font-normal">Passé</Badge>
-                      ) : passage.statut === "annulé" ? (
-                        <Badge className="bg-red-100 text-red-700 border-red-200 font-normal">Annulé</Badge>
-                      ) : (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              updatePassageDirect(passage.id, { statut: "passé" });
-                              toast.success("Marqué comme passé");
-                            }}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Marquer comme passé"
-                          >
-                            <CheckCircle2 className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              updatePassageDirect(passage.id, { statut: "annulé" });
-                              toast.success("Marqué comme annulé");
-                            }}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Marquer comme annulé"
-                          >
-                            <XCircle className="h-5 w-5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+        {/* Top Row: Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card className="border-l-4 border-l-primary border border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Rendez-vous aujourd'hui
+                Rendez-vous Aujourd'hui
               </CardTitle>
               <Calendar className="h-5 w-5 text-primary" />
             </CardHeader>
@@ -158,16 +91,15 @@ function Index() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-1">
+        {/* Split View: Rendez-vous & Passages Directs */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Left Column: Rendez-vous du jour */}
           <Card className="border border-border">
-            <CardHeader className="flex flex-row items-center justify-between bg-muted/30 border-b border-border">
+            <CardHeader className="bg-muted/30 border-b border-border">
               <CardTitle className="text-base font-semibold flex items-center gap-2 text-foreground">
                 <Clock className="h-5 w-5 text-primary" />
                 Rendez-vous du jour
               </CardTitle>
-              <Button size="sm" onClick={() => setNewRdvOpen(true)} className="bg-primary hover:bg-primary/90">
-                Ajouter
-              </Button>
             </CardHeader>
             <CardContent className="pt-4">
               {todayRDV.length === 0 ? (
@@ -179,11 +111,11 @@ function Index() {
                       key={rdv.id}
                       className="flex items-center justify-between rounded border border-border p-3 hover:bg-muted/30 transition-colors"
                     >
-                      <div>
-                        <p className="font-medium text-sm text-foreground">{rdv.patientNom}</p>
-                        <p className="text-xs text-muted-foreground">{rdv.motif}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-foreground truncate">{rdv.patientNom}</p>
+                        <p className="text-xs text-muted-foreground truncate">{rdv.motif}</p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 ml-4 flex-shrink-0">
                         <span className="text-sm font-semibold text-foreground tabular-nums">{rdv.heure}</span>
                         <Badge
                           variant="outline"
@@ -196,6 +128,73 @@ function Index() {
                         >
                           {rdv.statut === "confirmé" ? "Confirmé" : "En attente"}
                         </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Right Column: Passages Directs du Jour */}
+          <Card className="border border-border bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+            <CardHeader className="flex flex-row items-center justify-between bg-amber-100/50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800">
+              <CardTitle className="text-base font-semibold flex items-center gap-2 text-foreground">
+                <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                Passages Directs du Jour
+              </CardTitle>
+              <Button 
+                size="sm" 
+                onClick={() => setNewPassageOpen(true)} 
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                + Nouveau Passage
+              </Button>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {todayPassages.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">Aucun passage aujourd'hui</p>
+              ) : (
+                <div className="space-y-2">
+                  {todayPassages.map((passage) => (
+                    <div
+                      key={passage.id}
+                      className="flex items-center justify-between rounded border border-amber-200 dark:border-amber-800 p-3 hover:bg-amber-100/30 dark:hover:bg-amber-900/20 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-foreground truncate">{passage.nomPrenom}</p>
+                        <p className="text-xs text-muted-foreground truncate">{passage.motif}</p>
+                      </div>
+                      <div className="flex items-center gap-3 ml-4 flex-shrink-0">
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{passage.heure}</span>
+                        {passage.statut === "passé" ? (
+                          <Badge className="bg-green-100 text-green-700 border-green-200 font-normal">Passé</Badge>
+                        ) : passage.statut === "annulé" ? (
+                          <Badge className="bg-red-100 text-red-700 border-red-200 font-normal">Annulé</Badge>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                updatePassageDirect(passage.id, { statut: "passé" });
+                                toast.success("Marqué comme passé");
+                              }}
+                              className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                              title="Marquer comme passé"
+                            >
+                              <CheckCircle2 className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                updatePassageDirect(passage.id, { statut: "annulé" });
+                                toast.success("Marqué comme annulé");
+                              }}
+                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              title="Marquer comme annulé"
+                            >
+                              <XCircle className="h-5 w-5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

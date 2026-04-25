@@ -11,9 +11,10 @@ interface NewRendezVousModalProps {
   onOpenChange: (open: boolean) => void;
   categories: Category[];
   onSubmit: (rdv: Omit<RendezVous, "id">) => void;
+  prefilledDate?: string;
 }
 
-export function NewRendezVousModal({ open, onOpenChange, categories, onSubmit }: NewRendezVousModalProps) {
+export function NewRendezVousModal({ open, onOpenChange, categories, onSubmit, prefilledDate }: NewRendezVousModalProps) {
   const [formData, setFormData] = useState({
     nom: "",
     prenom: "",
@@ -35,8 +36,14 @@ export function NewRendezVousModal({ open, onOpenChange, categories, onSubmit }:
         date: "",
         heure: "",
       });
+    } else if (prefilledDate) {
+      // Pre-fill the date when modal opens with a specific date
+      setFormData(prev => ({
+        ...prev,
+        date: prefilledDate,
+      }));
     }
-  }, [open]);
+  }, [open, prefilledDate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/lib/auth-context";
 import { LoginPage } from "@/components/LoginPage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Users, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Calendar, Users, Clock, CheckCircle2, XCircle, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -14,7 +14,9 @@ import { useCategories } from "@/hooks/use-categories";
 import { NewPatientModal } from "@/components/modals/NewPatientModal";
 import { NewRendezVousModal } from "@/components/modals/NewRendezVousModal";
 import { NewPassageDirectModal } from "@/components/modals/NewPassageDirectModal";
+import { AppointmentActionModal } from "@/components/modals/AppointmentActionModal";
 import { toast } from "sonner";
+import { type RendezVous } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -44,17 +46,55 @@ function Index() {
   if (!isAuthenticated) return <LoginPage />;
 
   const { patients, addPatient } = usePatients();
-  const { rendezVous, addRendezVous, toggleStatut } = useRendezVous();
+  const { rendezVous, addRendezVous, updateRendezVous, archiveByDate } = useRendezVous();
   const { passagesDirects, addPassageDirect, updatePassageDirect } = usePassageDirect();
   const { categories } = useCategories();
   const [newPatientOpen, setNewPatientOpen] = useState(false);
   const [newRdvOpen, setNewRdvOpen] = useState(false);
   const [newPassageOpen, setNewPassageOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<RendezVous | null>(null);
+  const [appointmentActionOpen, setAppointmentActionOpen] = useState(false);
+  const [appointmentToConvert, setAppointmentToConvert] = useState<RendezVous | null>(null);
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const todayRDV = (rendezVous || []).filter((r) => r.date === todayStr);
+  const todayRDV = (rendezVous || []).filter((r) => r.date === todayStr && !r.archived);
   const todayPassages = (passagesDirects || []).filter((p) => p.date === todayStr);
   const totalPatients = (patients || []).length;
+
+  // Check if there are any "en attente" appointments today
+  const hasEnAttenteToday = todayRDV.some((rdv) => rdv.statut === "en attente");
+
+  const handleConfirmAppointment = (appointment: RendezVous) => {
+    updateRendezVous(appointment.id, { statut: "confirmé" });
+    setAppointmentActionOpen(false);
+    toast.success("Rendez-vous confirmé");
+  };
+
+  const handleRejectAppointment = (appointmentId: string) => {
+    updateRendezVous(appointmentId, { statut: "annulé" });
+    setAppointmentActionOpen(false);
+    toast.success("Rendez-vous rejeté");
+  };
+
+  const handleArchiveToday = () => {
+    archiveByDate(todayStr);
+    toast.success("Journée archivée");
+  };
+
+  const handleNewPatientSubmit = (patientData: any) => {
+    const newPatient = addPatient(patientData);
+    
+    if (appointmentToConvert) {
+      updateRendezVous(appointmentToConvert.id, {
+        patientId: newPatient.id,
+        patientNom: `${newPatient.nom} ${newPatient.prenom}`,
+      });
+    }
+
+    toast.success("Rendez-vous confirmé. Veuillez compléter le dossier du patient.");
+    setNewPatientOpen(false);
+    setAppointmentToConvert(null);
+  };
 
   return (
     <AppLayout>
@@ -96,10 +136,24 @@ function Index() {
           {/* Left Column: Rendez-vous du jour */}
           <Card className="border border-border">
             <CardHeader className="bg-muted/30 border-b border-border">
-              <CardTitle className="text-base font-semibold flex items-center gap-2 text-foreground">
-                <Clock className="h-5 w-5 text-primary" />
-                Rendez-vous du jour
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold flex items-center gap-2 text-foreground">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Rendez-vous du jour
+                </CardTitle>
+                {todayRDV.length > 0 && !hasEnAttenteToday && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleArchiveToday}
+                    className="h-8 gap-2 text-xs"
+                    title="Archiver cette journée"
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                    Archiver la journée
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="pt-4">
               {todayRDV.length === 0 ? (
@@ -109,7 +163,9 @@ function Index() {
                   {todayRDV.map((rdv) => (
                     <div
                       key={rdv.id}
-                      className="flex items-center justify-between rounded border border-border p-3 hover:bg-muted/30 transition-colors"
+                      className={`flex items-center justify-between rounded border border-border p-3 transition-colors ${
+                        rdv.statut === "annulé" ? "opacity-60" : "hover:bg-muted/30"
+                      }`}
                     >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm text-foreground truncate">{rdv.patientNom}</p>
@@ -117,17 +173,36 @@ function Index() {
                       </div>
                       <div className="flex items-center gap-3 ml-4 flex-shrink-0">
                         <span className="text-sm font-semibold text-foreground tabular-nums">{rdv.heure}</span>
-                        <Badge
-                          variant="outline"
-                          className={`cursor-pointer hover:bg-accent font-normal ${
-                            rdv.statut === "confirmé" 
-                              ? "border-success/30 bg-success/5 text-success" 
-                              : "border-warning/30 bg-warning/5 text-warning"
-                          }`}
-                          onClick={() => toggleStatut(rdv.id)}
-                        >
-                          {rdv.statut === "confirmé" ? "Confirmé" : "En attente"}
-                        </Badge>
+                        {rdv.statut === "en attente" ? (
+                          <button
+                            onClick={() => {
+                              setSelectedAppointment(rdv);
+                              setAppointmentActionOpen(true);
+                            }}
+                            className="px-3 py-1 rounded border border-warning/30 bg-warning/5 text-warning hover:bg-warning/10 transition-colors cursor-pointer text-sm font-normal"
+                            title="Cliquez pour confirmer ou rejeter"
+                          >
+                            En attente
+                          </button>
+                        ) : rdv.statut === "confirmé" ? (
+                          <button
+                            onClick={() => {
+                              setAppointmentToConvert(rdv);
+                              setNewPatientOpen(true);
+                            }}
+                            className="px-3 py-1 rounded border border-success/30 bg-success/5 text-success hover:bg-success/10 transition-colors cursor-pointer text-sm font-normal"
+                            title="Cliquez pour créer le dossier patient"
+                          >
+                            Confirmé
+                          </button>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="border-destructive/30 bg-destructive/5 text-destructive font-normal"
+                          >
+                            Annulé
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -209,7 +284,14 @@ function Index() {
         open={newPatientOpen}
         onOpenChange={setNewPatientOpen}
         categories={categories}
-        onSubmit={addPatient}
+        onSubmit={handleNewPatientSubmit}
+        prefilledData={appointmentToConvert ? {
+          nom: appointmentToConvert.nom || appointmentToConvert.patientNom.split(' ')[0] || "",
+          prenom: appointmentToConvert.prenom || appointmentToConvert.patientNom.split(' ').slice(1).join(' ') || "",
+          telephone: appointmentToConvert.telephone,
+          age: appointmentToConvert.age,
+          categorie: appointmentToConvert.motif || "",
+        } : undefined}
       />
 
       <NewRendezVousModal
@@ -224,6 +306,15 @@ function Index() {
         onOpenChange={setNewPassageOpen}
         categories={categories}
         onSubmit={addPassageDirect}
+      />
+
+      <AppointmentActionModal
+        open={appointmentActionOpen}
+        onOpenChange={setAppointmentActionOpen}
+        appointment={selectedAppointment}
+        categories={categories}
+        onConfirm={handleConfirmAppointment}
+        onReject={handleRejectAppointment}
       />
     </AppLayout>
   );

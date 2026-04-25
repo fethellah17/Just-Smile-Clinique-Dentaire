@@ -64,6 +64,7 @@ function RendezVousPage() {
   const [appointmentToConvert, setAppointmentToConvert] = useState<RendezVous | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [showArchive, setShowArchive] = useState(false);
+  const [prefilledDate, setPrefilledDate] = useState<string | undefined>(undefined);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
@@ -122,6 +123,12 @@ function RendezVousPage() {
     });
     
     showToast("Rendez-vous ajouté à la liste d'attente");
+    setPrefilledDate(undefined); // Clear prefilled date after submission
+  };
+
+  const handleQuickAddClick = (date: string) => {
+    setPrefilledDate(date);
+    setNewRdvOpen(true);
   };
 
   // Separate active and archived appointments
@@ -198,15 +205,27 @@ function RendezVousPage() {
               <Card key={date} className="border border-border">
                 <CardHeader className="pb-3 bg-muted/30 border-b border-border">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      {new Date(date).toLocaleDateString("fr-FR", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        {new Date(date).toLocaleDateString("fr-FR", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </CardTitle>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleQuickAddClick(date)}
+                        className="h-7 px-2 gap-1 text-xs border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                        title="Ajouter un rendez-vous pour cette date"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Ajouter</span>
+                      </Button>
+                    </div>
                     {canArchiveDate(rendezVous, date) && (
                       <Button
                         size="sm"
@@ -425,9 +444,13 @@ function RendezVousPage() {
 
       <NewRendezVousModal
         open={newRdvOpen}
-        onOpenChange={setNewRdvOpen}
+        onOpenChange={(open) => {
+          setNewRdvOpen(open);
+          if (!open) setPrefilledDate(undefined); // Clear prefilled date when modal closes
+        }}
         categories={categories}
         onSubmit={handleAddRendezVous}
+        prefilledDate={prefilledDate}
       />
 
       <AppointmentActionModal

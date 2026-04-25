@@ -4,9 +4,12 @@ import {
   Calendar,
   Settings,
   LogOut,
+  KeyRound,
 } from "lucide-react";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
+import { useState } from "react";
+import { ChangePasswordModal } from "@/components/modals/ChangePasswordModal";
 import {
   Sidebar,
   SidebarContent,
@@ -38,6 +41,7 @@ export function AppSidebar() {
   const router = useRouter();
   const { logout } = useAuth();
   const currentPath = location.pathname;
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const isActive = (path: string) => {
     if (path === "/") return currentPath === "/";
@@ -125,6 +129,16 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
+              onClick={() => setChangePasswordOpen(true)}
+              tooltip="Modifier le mot de passe"
+              className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
+            >
+              <KeyRound className="h-4 w-4" />
+              <span>Modifier le mot de passe</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
               onClick={handleLogout}
               tooltip="Déconnexion"
               className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
@@ -149,6 +163,11 @@ export function AppSidebar() {
           </div>
         )}
       </SidebarFooter>
+
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+      />
     </Sidebar>
   );
 }

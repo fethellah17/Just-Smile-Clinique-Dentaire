@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { PasswordRecoveryModal } from "@/components/modals/PasswordRecoveryModal";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -11,6 +12,12 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+
+  // Get current password for demo hint
+  const currentPassword = typeof window !== "undefined" 
+    ? localStorage.getItem("user_password") || "admin123"
+    : "admin123";
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -83,12 +90,28 @@ export function LoginPage() {
             >
               {loading ? "Connexion..." : "Se connecter"}
             </Button>
+            
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setRecoveryOpen(true)}
+                className="text-xs text-amber-700 hover:text-amber-900 hover:underline transition-colors"
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
+
             <p className="text-xs text-slate-500 text-center mt-4">
-              Démo : dr.souidi@justsmile.dz / admin123
+              Démo : dr.souidi@justsmile.dz / {currentPassword}
             </p>
           </form>
         </CardContent>
       </Card>
+
+      <PasswordRecoveryModal
+        open={recoveryOpen}
+        onOpenChange={setRecoveryOpen}
+      />
     </div>
   );
 }

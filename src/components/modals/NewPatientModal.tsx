@@ -89,13 +89,12 @@ export function NewPatientModal({ open, onOpenChange, categories, onSubmit, pref
       const type = selectedCategory.types.find(t => t.name === formData.type);
       setSelectedType(type || null);
       if (type) {
-        // Set initial step to first step
-        const firstStep = type.steps.sort((a, b) => a.order - b.order)[0];
+        // Do NOT set etapeActuelle - it should remain empty until steps are manually confirmed
         setFormData(prev => ({
           ...prev,
           typeSoin: type.name,
           typeSoinId: type.id,
-          etapeActuelle: firstStep?.name || "",
+          etapeActuelle: "", // Keep empty for new patients
         }));
       }
     } else {

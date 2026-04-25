@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Edit2, Trash2, History, Filter, Wallet, CheckCircle2, Phone, MessageCircle, FileText } from "lucide-react";
-import { getTelLink, getWhatsAppLink } from "@/lib/phone-utils";
+import { Search, Plus, Edit2, Trash2, History, Filter, Wallet, CheckCircle2, MessageCircle, FileText } from "lucide-react";
+import { getWhatsAppLink } from "@/lib/phone-utils";
 import { useState } from "react";
 import {
   Select,
@@ -145,17 +145,10 @@ function PatientsPage() {
           },
         ];
         
-        // Find the next pending step
-        const type = categories
-          .find(c => c.name === patient.categorie)
-          ?.types.find(t => t.id === patient.typeSoinId);
-        const sortedSteps = type?.steps.sort((a, b) => a.order - b.order) || [];
-        const completedIds = new Set(updatedSteps.map(s => s.stepId));
-        const nextPendingStep = sortedSteps.find(s => !completedIds.has(s.id));
-        
+        // Do NOT automatically update etapeActuelle here
+        // It will be updated only when user clicks "Confirmer" in the modal
         updatePatient(patientId, {
           stepsCompleted: updatedSteps,
-          etapeActuelle: nextPendingStep?.name || stepName,
         });
       }
     }
@@ -171,18 +164,11 @@ function PatientsPage() {
       // Remove this step and all subsequent steps (cascade)
       const updatedSteps = patient.stepsCompleted.slice(0, stepIndex);
       
-      // Find the step to get its name
-      const type = categories
-        .find(c => c.name === patient.categorie)
-        ?.types.find(t => t.id === patient.typeSoinId);
-      const stepToReverse = type?.steps.find(s => s.id === stepId);
-      
-      if (stepToReverse) {
-        updatePatient(patientId, {
-          stepsCompleted: updatedSteps,
-          etapeActuelle: stepToReverse.name,
-        });
-      }
+      // Do NOT automatically update etapeActuelle here
+      // It will be updated only when user clicks "Confirmer" in the modal
+      updatePatient(patientId, {
+        stepsCompleted: updatedSteps,
+      });
     }
   };
 
@@ -193,13 +179,16 @@ function PatientsPage() {
         // Ensure stepsCompleted exists and use the passed array
         const persistedSteps = stepsCompleted && stepsCompleted.length > 0 ? stepsCompleted : (patient.stepsCompleted || []);
         
+        // Set etapeActuelle to the last completed step name, or empty if no steps completed
+        const etapeActuelle = persistedSteps.length > 0 ? lastCompletedStepName : "";
+        
         // Update the patient with both the current step and the complete steps array
         updatePatient(patientId, {
-          etapeActuelle: lastCompletedStepName,
+          etapeActuelle: etapeActuelle,
           stepsCompleted: persistedSteps,
         });
         
-        console.log(`Patient ${patientId} treatment confirmed: ${lastCompletedStepName}`);
+        console.log(`Patient ${patientId} treatment confirmed: ${etapeActuelle || "(empty)"}`);
         console.log(`Persisted ${persistedSteps.length} steps for patient ${patientId}`);
       } catch (error) {
         console.error("Error confirming treatment:", error);
@@ -354,14 +343,7 @@ function PatientsPage() {
                         </TableCell>
                         <TableCell>{p.telephone}</TableCell>
                         <TableCell className="text-center">
-                          <div className="flex justify-center gap-2">
-                            <a
-                              href={getTelLink(p.telephone)}
-                              className="inline-flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 rounded-lg transition-colors"
-                              title="Appeler"
-                            >
-                              <Phone className="h-4 w-4" />
-                            </a>
+                          <div className="flex justify-center">
                             <a
                               href={getWhatsAppLink(p.telephone)}
                               target="_blank"

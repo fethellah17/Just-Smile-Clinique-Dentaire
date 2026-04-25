@@ -122,8 +122,11 @@ export function TreatmentHistoryModal({
 
   const handleConfirm = () => {
     try {
+      // If no steps are completed, set etapeActuelle to empty
       if (draftSteps.length === 0) {
-        toast.error("Aucune étape complétée");
+        onConfirm("", draftSteps);
+        toast.success("Suivi mis à jour avec succès");
+        onOpenChange(false);
         return;
       }
 

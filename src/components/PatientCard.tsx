@@ -1,9 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, History, Wallet, CheckCircle2, Phone, MessageCircle, FileText } from "lucide-react";
+import { Edit2, Trash2, History, Wallet, CheckCircle2, MessageCircle, FileText } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { getTelLink, getWhatsAppLink } from "@/lib/phone-utils";
+import { getWhatsAppLink } from "@/lib/phone-utils";
 import type { Patient } from "@/lib/mock-data";
 
 interface PatientCardProps {
@@ -124,13 +124,6 @@ export function PatientCard({
             <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wide mb-1">Téléphone</p>
             <div className="flex items-center gap-1">
               <p className="text-foreground font-semibold text-base">{patient.telephone}</p>
-              <a
-                href={getTelLink(patient.telephone)}
-                className="inline-flex items-center justify-center p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-950/30 rounded-full transition-colors flex-shrink-0"
-                title="Appeler"
-              >
-                <Phone className="h-5 w-5" />
-              </a>
               <a
                 href={getWhatsAppLink(patient.telephone)}
                 target="_blank"
